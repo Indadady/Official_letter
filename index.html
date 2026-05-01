@@ -30,15 +30,24 @@
         document.getElementById('ogImage').setAttribute('content', randomLogos[Math.floor(Math.random() * randomLogos.length)]);
     </script>
 
+    <!-- Iframe/Canvas 환경 스토리지 에러 방지 안전 랩퍼 -->
     <script>
-        try {
-            if (new URLSearchParams(window.location.search).get('mode') === 'customer' || sessionStorage.getItem('tm_admin_auth') === 'true') {
-                document.documentElement.style.setProperty('--login-display', 'none');
-            } else {
-                document.documentElement.style.setProperty('--login-display', 'flex');
-            }
-        } catch (e) {
+        const safeSession = {
+            get: function(k) { try { return sessionStorage.getItem(k); } catch(e) { return null; } },
+            set: function(k, v) { try { sessionStorage.setItem(k, v); } catch(e) { } }
+        };
+        const safeLocal = {
+            get: function(k) { try { return localStorage.getItem(k); } catch(e) { return null; } },
+            set: function(k, v) { try { localStorage.setItem(k, v); } catch(e) { } }
+        };
+
+        let modeParam = null;
+        try { modeParam = new URLSearchParams(window.location.search).get('mode'); } catch(e) {}
+        
+        if (modeParam === 'customer' || safeSession.get('tm_admin_auth') === 'true') {
             document.documentElement.style.setProperty('--login-display', 'none');
+        } else {
+            document.documentElement.style.setProperty('--login-display', 'flex');
         }
     </script>
 
@@ -46,7 +55,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;800&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- Firebase SDK (Compat 버전을 사용하여 캔버스 환경 100% 호환) -->
+    <!-- Firebase SDK (Compat 버전을 사용하여 캔버스 환경 호환) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -55,7 +64,6 @@
         :root { --navy: #004098; --teal: #0A7A6E; --bg: #F4F7F6; --slate: #4A6278; }
         body { font-family: 'Noto Sans KR', sans-serif; background-color: var(--bg); color: #1e293b; overflow: hidden; }
 
-        /* 🔥 CSS 우선순위 버그 해결: 수신함 하단 겹침 방지 */
         .hidden { display: none !important; }
 
         .admin-nav { position: relative; height: 60px; background: var(--navy); color: white; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -64,7 +72,7 @@
         .nav-tab { background: transparent; color: rgba(255,255,255,0.6); border: none; font-size: 15px; font-weight: 700; cursor: pointer; padding: 0 16px; height: 100%; border-bottom: 3px solid transparent; transition: 0.2s; }
         .nav-tab:hover { color: white; background: rgba(255,255,255,0.1); }
         .nav-tab.active { color: white; border-bottom-color: var(--teal); background: rgba(255,255,255,0.15); }
-        .share-btn { background: var(--teal); color: white; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; transition: 0.2s; white-space: nowrap;}
+        .share-btn { background: var(--teal); color: white; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; transition: 0.2s; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;}
         .share-btn:hover { filter: brightness(1.1); }
 
         .view-section { display: none; animation: fadeIn 0.3s; }
@@ -119,7 +127,8 @@
         .left-panel::-webkit-scrollbar-thumb, .right-panel::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 5px; border: 2px solid #e2e8f0; }
         .left-panel::-webkit-scrollbar-thumb:hover, .right-panel::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
-        #letter-wrapper { width: 100%; text-align: center; }
+        /* wrapper 및 컨테이너를 block 레벨로 유지하여 크기 잘림 문제 완벽 해결 */
+        #letter-wrapper { display: block; width: 100%; text-align: center; }
         .letter-container { margin: 0 auto; }
         #viewer-banner { margin: 0 auto 16px auto; }
 
@@ -234,7 +243,7 @@
         </div>
         <div class="flex gap-2 shrink-0">
             <button class="share-btn admin-only" onclick="window.copyShareLink()"><i class="fa-solid fa-link"></i> 링크 배포</button>
-            <button class="share-btn bg-slate-700 hover:bg-slate-800 admin-only hidden" id="global-print-btn" onclick="window.print()"><i class="fa-solid fa-print"></i> PDF/인쇄</button>
+            <button class="share-btn bg-slate-700 hover:bg-slate-800 admin-only" id="global-print-btn" onclick="window.print()" style="display: inline-flex;"><i class="fa-solid fa-print"></i> PDF/인쇄</button>
         </div>
     </nav>
 
@@ -437,13 +446,14 @@
         // --- Security / Authentication ---
         const ADMIN_PASSWORD = "tourmaker2026";
         
-        // --- State Management ---
+        // 캐시 키를 v3로 변경하여 기존에 저장되었던 잘못된 도장/로고 이미지를 완벽하게 백지화합니다.
+        const STORAGE_KEY_PREFIX = "tm_letter_data_v3_";
+        
         const urlParams = new URLSearchParams(window.location.search);
         const isCustomerMode = urlParams.get('mode') === 'customer';
         let currentEventId = urlParams.get('eventId') || '260930_Taiwan';
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'tourmaker-letter-app';
 
-        // 기본 제공 뼈대 템플릿 (본문 내용 전체)
         const defaultSkeleton = `
 <p>Dear Director and Esteemed Colleagues,</p>
 <p>Warm greetings from South Korea. We hope this letter finds you well.</p>
@@ -479,22 +489,21 @@
             stampDataUrl: "", stampSize: 100, stampX: 0, stampY: 0
         };
 
-        // For Submission Viewer Backup
         let isViewingSubmission = false;
         let cachedTemplateData = null;
-
         let db = null, auth = null, user = null;
         let submissionsList = [];
         let unsubscribeInbox = null;
 
-        // 전역 함수 선언 (캔버스 클릭 이벤트 연동을 위해 window 객체에 직접 할당)
-        
+        // -------------------------------------------------------------
+        // 전역 함수 등록 (캔버스 샌드박스 보안 회피 및 인라인 실행 보장)
+        // -------------------------------------------------------------
         window.checkAdminAuth = function() {
             const pwdInput = document.getElementById('admin-pwd-input');
             if (!pwdInput) return;
             
             if (pwdInput.value === ADMIN_PASSWORD) {
-                try { sessionStorage.setItem('tm_admin_auth', 'true'); } catch(e) {}
+                safeSession.set('tm_admin_auth', 'true');
                 const loginScreen = document.getElementById('adminLoginScreen');
                 loginScreen.classList.add('opacity-0');
                 setTimeout(() => loginScreen.classList.add('hidden'), 300);
@@ -515,15 +524,15 @@
         window.updateDocDate = function() {
             appData.docDate = document.getElementById('admin-docDate').value;
             window.syncDOMWithState();
-            try { localStorage.setItem(`tm_letter_data_${currentEventId}`, JSON.stringify(appData)); } catch(e){}
+            safeLocal.set(STORAGE_KEY_PREFIX + currentEventId, JSON.stringify(appData));
         };
 
         window.resetRichText = function() {
-            if(confirm("작성하신 본문 내용이 모두 지워지고 초기 뼈대 양식으로 되돌아갑니다. 직인 이미지도 초기화됩니다. 계속하시겠습니까?")) {
+            if(confirm("작성하신 본문 내용이 모두 지워지고 초기 뼈대 양식으로 되돌아갑니다. 업로드된 직인 이미지도 함께 초기화됩니다. 계속하시겠습니까?")) {
                 appData.letterBodyHtml = defaultSkeleton;
-                appData.stampDataUrl = ""; // 기존 캐시된 도장 이미지도 함께 날리기
+                appData.stampDataUrl = ""; 
                 window.syncDOMWithState();
-                try { localStorage.setItem(`tm_letter_data_${currentEventId}`, JSON.stringify(appData)); } catch(e){}
+                safeLocal.set(STORAGE_KEY_PREFIX + currentEventId, JSON.stringify(appData));
                 window.showToast("기본 뼈대 및 캐시가 모두 초기화되었습니다.");
             }
         };
@@ -533,7 +542,7 @@
             if(richArea) {
                 appData.letterBodyHtml = richArea.innerHTML;
                 if(!isViewingSubmission) {
-                    try { localStorage.setItem(`tm_letter_data_${currentEventId}`, JSON.stringify(appData)); } catch(e){}
+                    safeLocal.set(STORAGE_KEY_PREFIX + currentEventId, JSON.stringify(appData));
                 }
             }
         };
@@ -557,15 +566,15 @@
             const targetSec = document.getElementById(targetId);
             if(targetSec) targetSec.classList.add('active');
 
-            // 우측 패널 전환 및 인쇄버튼 표시 로직
+            // 🎯 핵심 버그 수정: CSS 우선순위 문제를 피해 JS 인라인 스타일로 렌더링 강제 제어
             if(targetId === 'viewInbox' && !isViewingSubmission) {
                 document.getElementById('inbox-placeholder').classList.remove('hidden');
-                document.getElementById('letter-wrapper').classList.add('hidden');
-                document.getElementById('global-print-btn').classList.add('hidden');
+                document.getElementById('letter-wrapper').style.display = 'none';
+                document.getElementById('global-print-btn').style.display = 'none';
             } else {
                 document.getElementById('inbox-placeholder').classList.add('hidden');
-                document.getElementById('letter-wrapper').classList.remove('hidden');
-                document.getElementById('global-print-btn').classList.remove('hidden'); // 관리자 셋팅, 고객폼, 뷰어에서 보임
+                document.getElementById('letter-wrapper').style.display = 'block';
+                document.getElementById('global-print-btn').style.display = 'inline-flex';
             }
 
             window.applyRoleBasedEditability(targetId);
@@ -620,7 +629,7 @@
 
             appData.stampSize = size; appData.stampX = x; appData.stampY = y;
             if (shouldSave && !isViewingSubmission) {
-                try { localStorage.setItem(`tm_letter_data_${currentEventId}`, JSON.stringify(appData)); } catch(e){}
+                safeLocal.set(STORAGE_KEY_PREFIX + currentEventId, JSON.stringify(appData));
             }
         };
 
@@ -632,7 +641,7 @@
             stampArea.innerHTML = `<span id="stampPlaceholderText">직인/서명</span>`;
             stampArea.style.border = '2px dashed #cbd5e1';
             if (shouldSave && !isViewingSubmission) {
-                try { localStorage.setItem(`tm_letter_data_${currentEventId}`, JSON.stringify(appData)); } catch(e){}
+                safeLocal.set(STORAGE_KEY_PREFIX + currentEventId, JSON.stringify(appData));
             }
         };
 
@@ -663,9 +672,9 @@
             
             document.getElementById('bodyEl').classList.add('show-submission-viewer');
             document.getElementById('inbox-placeholder').classList.add('hidden');
-            document.getElementById('letter-wrapper').classList.remove('hidden');
+            document.getElementById('letter-wrapper').style.display = 'block';
             document.getElementById('viewer-banner').classList.remove('hidden');
-            document.getElementById('global-print-btn').classList.remove('hidden');
+            document.getElementById('global-print-btn').style.display = 'inline-flex';
             
             document.getElementById('viewer-submitter').innerText = sub.submitterName;
             
@@ -699,7 +708,7 @@
         window.submitToFirebase = async function() {
             if(!db || !user) {
                 window.showToast("서버 연결 대기중입니다. 로컬에 저장합니다.");
-                try { localStorage.setItem(`tm_letter_data_${currentEventId}`, JSON.stringify(appData)); } catch(e){}
+                safeLocal.set(STORAGE_KEY_PREFIX + currentEventId, JSON.stringify(appData));
                 return;
             }
             
@@ -726,8 +735,6 @@
                 }
             });
         };
-
-        // --- Core Application Logic ---
 
         window.renderStamp = function(dataUrl, shouldSave = true) {
             const stampArea = document.getElementById('stampDisplayArea');
@@ -856,20 +863,19 @@
                     }
                 }
                 if(!isViewingSubmission) {
-                    try { localStorage.setItem(`tm_letter_data_${currentEventId}`, JSON.stringify(appData)); } catch(e){}
+                    safeLocal.set(STORAGE_KEY_PREFIX + currentEventId, JSON.stringify(appData));
                 }
             }
         }
 
         function handleEnterKey(e) {
             if(e.target.classList.contains('rich-body-area')) return;
-
             if (e.target.classList.contains('editable-text') && e.key === 'Enter') {
                 e.preventDefault(); e.target.blur(); 
             }
         }
 
-        // Firebase Setup
+        // Firebase Setup & Error Fallbacks
         window.loadEventFromFirebase = async function() {
             try {
                 currentEventId = isCustomerMode ? currentEventId : document.getElementById('admin-eventId').value.trim();
@@ -898,10 +904,10 @@
         };
 
         window.loadDataFromLocal = function() {
-            try {
-                const saved = localStorage.getItem(`tm_letter_data_${currentEventId}`);
-                if (saved) appData = { ...appData, ...JSON.parse(saved) };
-            } catch(e) {}
+            const saved = safeLocal.get(STORAGE_KEY_PREFIX + currentEventId);
+            if (saved) {
+                try { appData = { ...appData, ...JSON.parse(saved) }; } catch(e) {}
+            }
             window.syncDOMWithState();
             
             if (isCustomerMode) window.switchTab('viewCustomer');
@@ -914,7 +920,7 @@
         window.saveEventTemplateToFirebase = async function() {
             if(!db || !user) {
                 window.showToast("서버 연결 대기중입니다. 로컬에 저장합니다.");
-                try { localStorage.setItem(`tm_letter_data_${currentEventId}`, JSON.stringify(appData)); } catch(e){}
+                safeLocal.set(STORAGE_KEY_PREFIX + currentEventId, JSON.stringify(appData));
                 return;
             }
             try {
@@ -925,11 +931,11 @@
                     updatedAt: new Date().toISOString()
                 }, { merge: true });
                 
-                try { localStorage.setItem(`tm_letter_data_${currentEventId}`, JSON.stringify(appData)); } catch(e){}
+                safeLocal.set(STORAGE_KEY_PREFIX + currentEventId, JSON.stringify(appData));
                 window.showToast("맞춤형 공문 양식이 서버에 저장되었습니다. 링크를 배포하세요.");
             } catch(e) {
                 console.error(e);
-                try { localStorage.setItem(`tm_letter_data_${currentEventId}`, JSON.stringify(appData)); } catch(e){}
+                safeLocal.set(STORAGE_KEY_PREFIX + currentEventId, JSON.stringify(appData));
                 window.showToast("저장 실패. 로컬 스토리지에만 보관됩니다.");
             }
         };
@@ -1015,11 +1021,22 @@
                 auth = firebase.auth();
                 db = firebase.firestore();
 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await auth.signInWithCustomToken(__initial_auth_token);
-                } else {
-                    await auth.signInAnonymously();
-                }
+                // 캔버스 등에서 인증 차단 에러가 나도 앱이 동작하도록 catch 처리
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await auth.signInWithCustomToken(__initial_auth_token);
+                    } else {
+                        await auth.signInAnonymously();
+                    }
+                };
+                
+                initAuth().catch(e => {
+                    console.error("Auth Exception (Iframe Sandbox):", e);
+                    document.getElementById('dbStatusBadge').innerText = "🔴 로컬 연동 모드";
+                    document.getElementById('dbStatusBadge').classList.replace('bg-slate-700', 'bg-red-700');
+                    window.loadDataFromLocal();
+                    window.hideLoading();
+                });
 
                 auth.onAuthStateChanged(async (u) => {
                     user = u;
