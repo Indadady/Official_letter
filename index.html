@@ -5,11 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>[투어메이커] 스마트 영문 공문 플랫폼</title>
     
+    <!-- 카카오톡 공유 썸네일 및 메타 태그 (Open Graph) -->
+    <meta property="og:title" content="투어메이커 스마트 영문 공문 플랫폼">
+    <meta property="og:description" content="담당자님, 링크를 통해 공식 영문 공문 작성을 완료해 주세요.">
+    <!-- id 속성을 추가하여 스크립트에서 제어할 수 있도록 함 -->
+    <meta property="og:image" id="ogImage" content="https://github.com/Indadady/TourMaker_profile/blob/main/logo_paper.jpg?raw=true">
+    <meta property="og:type" content="website">
+
+    <!-- 랜덤 OG 썸네일 적용 스크립트 -->
+    <script>
+        const randomLogos = [
+            "https://github.com/Indadady/TourMaker_profile/blob/main/logo_paper.jpg?raw=true",
+            "https://github.com/Indadady/TourMaker_profile/blob/main/logo_building.png?raw=true",
+            "https://github.com/Indadady/TourMaker_profile/blob/main/logo_bag.png?raw=true"
+        ];
+        const selectedLogo = randomLogos[Math.floor(Math.random() * randomLogos.length)];
+        document.getElementById('ogImage').setAttribute('content', selectedLogo);
+    </script>
+
+    <!-- 깜빡임(FOUC) 원천 차단을 위한 로그인 화면 제어 스크립트 -->
+    <script>
+        // 고객 모드이거나 이미 인증을 완료한 세션이면 로그인 창을 렌더링 단계부터 숨김
+        if (new URLSearchParams(window.location.search).get('mode') === 'customer' || sessionStorage.getItem('tm_admin_auth') === 'true') {
+            document.documentElement.style.setProperty('--login-display', 'none');
+        } else {
+            document.documentElement.style.setProperty('--login-display', 'flex');
+        }
+    </script>
+
+    <!-- Chosen Palette: Navy (#004098), Teal (#0A7A6E), Slate (#4A6278), Background (#F4F7F6) -->
     <!-- Application Structure Plan: 
-         1. Strict Role-Based WYSIWYG: editable-text 속성에 data-role="admin"과 "customer"를 명확히 구분. 고객 접속 시 admin 데이터는 뷰어 모드로 자동 잠금.
-         2. AI Translation Integration (Gemini): 사전 질의서에 한글이 포함되어 있을 경우, Gemini API를 호출하여 공식 비즈니스 영어로 실시간 번역해 주는 기능 탑재. (고객의 언어 장벽 완벽 해소)
-         3. Customer UX Optimization: 고객 화면의 좌측 패널에는 오직 '직인 업로드'와 '질문 번역/추가/삭제' 기능만 배치하여 혼란을 최소화.
-         4. First-Person Perspective: 공문 본문을 방문 단체의 1인칭 시점("We, the [OrgName], are...")으로 전면 수정하여 비즈니스 서한의 완결성 확보.
+         1. Admin Security Gate: 클라이언트 단에서 sessionStorage를 활용하여 관리자 모드 접근 시 비밀번호(tourmaker2026) 인증을 요구. 
+         2. Strict Role-Based WYSIWYG: editable-text 속성에 data-role="admin"과 "customer" 구분 적용.
+         3. External AI Support: 깃허브 등 외부 호스팅 배포 시 Gemini API 키 누락으로 인한 통신 오류를 방지하기 위해 관리자 패널에서 API 키를 입력받아 상태에 저장.
+         4. Customer UX Optimization: 고객 화면의 좌측 패널에는 오직 '직인 업로드'와 '질문 번역/추가/삭제' 기능만 배치하여 혼란 최소화.
+    -->
+    <!-- Visualization & Content Choices: 
+         - Goal: 관리자 보안 -> Method: fixed 풀스크린 모달(adminLoginScreen)을 통해 비밀번호를 확인하기 전까지 UI 조작을 원천 차단. 
+         - Goal: 직인 이미지 표시 -> Method: HTML5 FileReader + CSS mix-blend-mode: multiply 적용. (NO SVG)
     -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
 
@@ -65,7 +98,7 @@
         .editable-text:focus { background-color: #fef9c3; border-bottom: 2px solid #ea580c; box-shadow: 0 0 0 3px rgba(234,88,12,0.1); }
         .editable-text:empty:before { content: '입력해주세요'; color: #9ca3af; font-style: italic; }
 
-        /* Viewer Mode (Locked) Styling - When user has no permission */
+        /* Viewer Mode (Locked) Styling */
         .editable-text.viewer-mode { background-color: transparent !important; border: none !important; padding: 0 !important; cursor: default !important; box-shadow: none !important; pointer-events: none; }
 
         /* Stamp Box (Far Right) */
@@ -113,7 +146,7 @@
         @media print {
             @page { size: A4 portrait; margin: 0; }
             body { background: white !important; padding: 0 !important; overflow: visible !important; display: block !important; }
-            .admin-nav, .no-print, .left-panel, #toastBox, #modal-overlay { display: none !important; }
+            .admin-nav, .no-print, .left-panel, #toastBox, #modal-overlay, #adminLoginScreen { display: none !important; }
             .main-layout { display: block !important; height: auto !important; overflow: visible !important; }
             .right-panel { display: block !important; width: 100% !important; padding: 0 !important; background: transparent !important; overflow: visible !important; }
             .letter-container { box-shadow: none !important; margin: 0 !important; padding: 20mm !important; width: 210mm !important; min-height: 297mm !important; height: auto !important; }
@@ -126,6 +159,21 @@
     </style>
 </head>
 <body id="bodyEl">
+
+    <!-- Admin Login Screen (보안 게이트) -->
+    <div id="adminLoginScreen" class="fixed inset-0 bg-slate-900 z-[10000] flex-col items-center justify-center px-4 transition-opacity duration-300" style="display: var(--login-display, flex);">
+        <div class="bg-white p-8 md:p-10 rounded-2xl shadow-2xl max-w-sm w-full text-center">
+            <div class="w-16 h-16 bg-blue-100 text-[#004098] rounded-full flex items-center justify-center mx-auto mb-5 text-3xl">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h2 class="text-2xl font-black text-slate-800 mb-2">관리자 보안 인증</h2>
+            <p class="text-sm text-slate-500 mb-6 leading-relaxed">시스템 접근을 위해<br>여행사 관리자 비밀번호를 입력해 주세요.</p>
+            <input type="password" id="admin-pwd-input" class="w-full border-2 border-slate-200 focus:border-[#004098] rounded-lg px-4 py-3.5 mb-5 outline-none text-center font-bold tracking-[0.2em] text-lg" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter') checkAdminAuth()" />
+            <button onclick="checkAdminAuth()" class="w-full bg-[#004098] hover:bg-blue-800 text-white font-bold py-3.5 rounded-lg transition shadow-md text-base">
+                인증 및 시스템 접속
+            </button>
+        </div>
+    </div>
 
     <!-- Toast Notification -->
     <div id="toastBox"></div>
@@ -198,6 +246,16 @@
                     <div class="input-group mb-0">
                         <label class="input-label">행사 고유 코드 (Event ID)</label>
                         <input type="text" id="admin-eventId" value="260930_Taiwan" class="input-field font-bold text-blue-700" onchange="loadEventData()">
+                    </div>
+                </div>
+
+                <!-- AI 번역을 위한 구글 API 키 셋팅란 추가 -->
+                <div class="form-card" style="border: 2px solid #818cf8;">
+                    <h2 class="form-title text-indigo-700 border-b border-indigo-100"><i class="fa-solid fa-robot"></i> AI 번역기 설정 (외부 호스팅 배포용)</h2>
+                    <p class="text-xs text-slate-500 mb-3 leading-relaxed">깃허브(GitHub) 등 외부 서버에 배포 시 고객의 한글 질문을 영어로 번역하려면 <b>Google Gemini API 키</b>가 필요합니다. 무료 키를 발급받아 아래에 입력해 두면 고객 화면에서 마법처럼 작동합니다.</p>
+                    <div class="input-group mb-0 flex gap-2">
+                        <input type="text" id="ad-geminiKey" placeholder="AIzaSy... (선택 사항)" class="input-field flex-grow border-indigo-200 focus:border-indigo-500" onchange="updateGeminiKey()">
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="bg-slate-100 text-slate-600 border border-slate-300 px-3 py-2 rounded text-xs font-bold hover:bg-slate-200 transition flex items-center justify-center whitespace-nowrap"><i class="fa-solid fa-key mr-1"></i> 무료 키 발급</a>
                     </div>
                 </div>
 
@@ -360,6 +418,7 @@
                     <p>Dear Director and Esteemed Colleagues,</p>
                     <p>Warm greetings from South Korea. We hope this letter finds you well.</p>
 
+                    <!-- First Person Perspective: "We, the [Organization], are..." -->
                     <p>
                         We, the <strong><span class="editable-text" data-role="customer" data-key="orgName" contenteditable="true" spellcheck="false" id="out-orgName-body">Incheon Group Home Association</span></strong>, are an official organization representing professionals and facilities in South Korea.
                     </p>
@@ -430,6 +489,9 @@
     </div>
 
     <script>
+        // --- Security / Authentication ---
+        const ADMIN_PASSWORD = "tourmaker2026";
+        
         // --- State Management ---
         const urlParams = new URLSearchParams(window.location.search);
         const isCustomerMode = urlParams.get('mode') === 'customer';
@@ -459,7 +521,8 @@
             orgWeb: "www.grouphome.or.kr", 
             email: "official@grouphome.or.kr", 
             phone: "+82-10-1234-5678",
-            stampDataUrl: "", stampSize: 100, stampX: 0, stampY: 0
+            stampDataUrl: "", stampSize: 100, stampX: 0, stampY: 0,
+            geminiApiKey: "" // For external deployment AI usage
         };
 
         // Firebase States
@@ -469,6 +532,24 @@
 
         // --- Init & Firebase ---
         document.addEventListener('DOMContentLoaded', async () => {
+            // Check Admin Security
+            const loginScreen = document.getElementById('adminLoginScreen');
+            if (isCustomerMode) {
+                if(loginScreen) loginScreen.classList.add('hidden');
+            } else {
+                const isAuth = sessionStorage.getItem('tm_admin_auth') === 'true';
+                if (isAuth) {
+                    if(loginScreen) loginScreen.classList.add('hidden');
+                } else {
+                    if(loginScreen) {
+                        setTimeout(() => {
+                            const pwdInput = document.getElementById('admin-pwd-input');
+                            if(pwdInput) pwdInput.focus();
+                        }, 100);
+                    }
+                }
+            }
+
             const today = new Date();
             document.getElementById('out-currentDate').innerText = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -484,6 +565,25 @@
 
             await initFirebase();
         });
+
+        // Admin Security Check Function
+        function checkAdminAuth() {
+            const pwdInput = document.getElementById('admin-pwd-input');
+            if (!pwdInput) return;
+            const pwd = pwdInput.value;
+            
+            if (pwd === ADMIN_PASSWORD) {
+                sessionStorage.setItem('tm_admin_auth', 'true');
+                const loginScreen = document.getElementById('adminLoginScreen');
+                loginScreen.classList.add('opacity-0');
+                setTimeout(() => loginScreen.classList.add('hidden'), 300);
+                showToast("관리자 인증이 완료되었습니다.");
+            } else {
+                showToast("⚠️ 비밀번호가 일치하지 않습니다.");
+                pwdInput.value = '';
+                pwdInput.focus();
+            }
+        }
 
         async function initFirebase() {
             try {
@@ -724,6 +824,12 @@
         }
 
         // --- Sync & DOM Updates ---
+        function updateGeminiKey() {
+            appData.geminiApiKey = document.getElementById('ad-geminiKey').value.trim();
+            localStorage.setItem(`tm_letter_data_${currentEventId}`, JSON.stringify(appData));
+            showToast("AI 번역기 설정이 저장되었습니다.");
+        }
+
         function syncDOMWithState() {
             if(document.getElementById('cu-stamp-size')){
                 document.getElementById('cu-stamp-size').value = appData.stampSize;
@@ -735,6 +841,7 @@
                 document.getElementById('ad-visitDate').value = appData.visitDateRaw || ''; 
                 document.getElementById('ad-startTime').value = appData.startTime || '';
                 document.getElementById('ad-endTime').value = appData.endTime || '';
+                document.getElementById('ad-geminiKey').value = appData.geminiApiKey || '';
             }
 
             // Simple text mappings
@@ -836,8 +943,12 @@
 
         // --- Gemini AI Translation Logic ---
         async function translateText(text) {
-            const apiKey = ""; // Runtime Injected
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const apiKey = ""; // Canvas 환경 자동 주입용
+            const finalApiKey = appData.geminiApiKey || apiKey; 
+
+            if(!finalApiKey) throw new Error('API Key Missing');
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${finalApiKey}`;
             const prompt = `Translate the following Korean question into polite, formal business English suitable for an official letter to a foreign organization. Do not include any explanations, quotes, or conversational text. ONLY output the translated English sentence:\n\n${text}`;
             
             // Exponential Backoff (1s, 2s, 4s)
@@ -849,11 +960,15 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
-                    if (!response.ok) throw new Error('API Error');
+                    if (!response.ok) {
+                        if(response.status === 400) throw new Error('Invalid API Key'); // Invalid Key
+                        throw new Error('API Error');
+                    }
                     const result = await response.json();
                     const translated = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
                     if(translated) return translated;
                 } catch (error) {
+                    if (error.message === 'Invalid API Key') throw error;
                     if (i === delays.length) throw error;
                     await new Promise(resolve => setTimeout(resolve, delays[i]));
                 }
@@ -894,7 +1009,11 @@
                 showToast("✅ 성공적으로 영문 번역이 완료되었습니다.");
             } catch(e) {
                 hideLoading();
-                showToast("⚠️ 번역 서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+                if(e.message === 'API Key Missing' || e.message === 'Invalid API Key') {
+                    showToast("⚠️ AI 통신 오류: 구글 Gemini API 키가 누락되었거나 올바르지 않습니다. 관리자에게 문의해 주세요.");
+                } else {
+                    showToast("⚠️ 번역 서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+                }
             }
         }
 
