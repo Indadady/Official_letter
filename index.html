@@ -140,9 +140,8 @@
             .letter-container { padding: 15mm; }
         }
 
-        /* High Quality Print Styles (2페이지 여백 문제 해결을 위한 전면 개편) */
+        /* High Quality Print Styles */
         @media print {
-            /* 브라우저단에 상하 20mm 고정 여백을 주어 2페이지 상단이 잘리거나 딱 붙는 문제 원천 차단 */
             @page { size: A4 portrait; margin: 20mm 15mm; } 
             
             html, body {
@@ -157,7 +156,6 @@
             
             #letter-wrapper { display: block !important; margin: 0 !important; max-width: none !important; text-align: left !important; }
             
-            /* 브라우저가 여백을 담당하므로 컨테이너 내부 padding은 제거하여 공간 활용도 극대화 */
             .letter-container { 
                 box-shadow: none !important; margin: 0 !important; padding: 0 !important; width: 100% !important; min-height: auto !important; height: auto !important; 
                 box-sizing: border-box;
@@ -165,7 +163,6 @@
             .editable-text { background: transparent !important; border: none !important; padding: 0 !important; }
             .stamp-box { border: none !important; color: transparent !important; }
             
-            /* 단락이나 박스가 페이지 중간에 잘리지 않도록 보호 */
             p, h1, h2, h3, h4, li { orphans: 3; widows: 3; }
         }
 
@@ -227,7 +224,6 @@
     <!-- Top Navigation -->
     <nav class="admin-nav no-print">
         <div class="font-bold flex items-center gap-3 shrink-0">
-            <!-- 고정된 투어메이커 로고 -->
             <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgHfgIX70O5k6Anuo0UgALIdaG9jSga9auHu3uyz0uEirylGPAJnjN_qQbvEGMUvPqUQf_g9FMNUHRxlDcUBf4vZ3Mpy4TnA9WxbmzWYK11gt2zuy_Irl4wctNFjcjLyPo0GPXV792o_J7L9guRMuDfeC1gy7USwywjYbECZgzcsHybuGRRAXAnO1eNmP8/s320/logo.png" alt="투어메이커" class="h-6">
             <span class="hidden sm:inline">스마트 공문 플랫폼</span>
             <span id="dbStatusBadge" class="hidden lg:inline-block text-[10px] bg-slate-700 px-2 py-0.5 rounded-full ml-2 font-normal">DB 연결중</span>
@@ -254,15 +250,32 @@
             <!-- TAB 1: ADMIN SETUP -->
             <div id="viewAdmin" class="view-section active admin-only max-w-2xl mx-auto">
                 <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6 text-sm text-blue-800 font-medium leading-relaxed shadow-sm">
-                    <i class="fa-solid fa-magic text-blue-600 mr-1"></i> <b>관리자 전용 문서 편집 모드입니다.</b><br>우측 공문에서 <span class="bg-yellow-200 px-1 rounded border-b border-dashed border-yellow-600">노란색 하이라이트</span> 영역을 자유롭게 클릭하고 수정하세요. (방문 대상, 일자, 형식 등 템플릿 수정 가능)
+                    <i class="fa-solid fa-magic text-blue-600 mr-1"></i> <b>관리자 전용 문서 편집 모드입니다.</b><br>우측 공문에서 <span class="bg-yellow-200 px-1 rounded border-b border-dashed border-yellow-600">노란색 하이라이트</span> 영역을 자유롭게 클릭하고 수정하세요.
+                </div>
+
+                <div class="form-card" style="border: 2px solid #004098;">
+                    <h2 class="form-title"><i class="fa-solid fa-file-lines"></i> 공문 양식 및 템플릿</h2>
+                    <div class="input-group">
+                        <label class="input-label text-blue-800">해외 기관 성격에 따른 템플릿 선택</label>
+                        <select id="admin-template-select" class="input-field bg-blue-50 font-bold text-blue-900 border-blue-300" onchange="window.changeTemplate()">
+                            <option value="org">1. 일반 기관/협회 벤치마킹 (기본)</option>
+                            <option value="school">2. 학교/교육기관 탐방 및 교류</option>
+                            <option value="gov">3. 공공기관/지자체 우수사례 연수</option>
+                        </select>
+                        <p class="text-[11px] text-slate-500 mt-1">선택 시 우측 영문 공문의 본문 내용(방문 목적, 기관 소개 등)이 성격에 맞게 자동 교체됩니다.</p>
+                    </div>
+                    <div class="input-group mb-0">
+                        <label class="input-label">공문 작성일 (Document Date)</label>
+                        <input type="text" id="admin-docDate" class="input-field" onchange="window.updateDocDate()" placeholder="예: May 1, 2026">
+                        <p class="text-[11px] text-slate-500 mt-1">해외 양식에 맞춘 작성일자입니다. 우측 문서 상단에서도 직접 타이핑하여 수정 가능합니다.</p>
+                    </div>
                 </div>
 
                 <div class="form-card">
                     <h2 class="form-title"><i class="fa-solid fa-key"></i> 행사 고유 설정</h2>
                     <div class="input-group mb-0">
                         <label class="input-label">행사 고유 코드 (Event ID)</label>
-                        <input type="text" id="admin-eventId" value="260930_Taiwan" class="input-field font-bold text-blue-700" onchange="window.loadEventData()">
-                        <p class="text-xs text-slate-500 mt-1">이 코드를 통해 고객 폼과 수신함 데이터가 연동됩니다.</p>
+                        <input type="text" id="admin-eventId" value="260930_Taiwan" class="input-field font-bold text-slate-700" onchange="window.loadEventData()">
                     </div>
                 </div>
 
@@ -279,7 +292,6 @@
                             <span class="text-slate-400">~</span>
                             <input type="time" id="ad-endTime" class="input-field px-2" onchange="window.updateDateTime()">
                         </div>
-                        <p class="text-[11px] text-red-500 mt-2 font-bold"><i class="fa-solid fa-circle-info"></i> 시간을 모두 지우면 우측 공문에서 시간 안내 문구가 자동 삭제됩니다.</p>
                     </div>
                 </div>
                 
@@ -370,7 +382,7 @@
         <!-- RIGHT PANEL: PREVIEW / VIEWER -->
         <div class="right-panel" id="rightPanel">
             
-            <!-- Inbox Placeholder (Shown when Tab 3 is active but no letter selected) -->
+            <!-- Inbox Placeholder -->
             <div id="inbox-placeholder" class="hidden w-full h-full flex-col items-center justify-center text-slate-400 mt-20">
                 <i class="fas fa-envelope-open-text text-6xl mb-4 text-slate-300"></i>
                 <p class="text-lg font-bold">👈 좌측 목록에서 열람할 공문을 선택하세요.</p>
@@ -379,7 +391,7 @@
             <!-- Letter Wrapper -->
             <div id="letter-wrapper" class="w-full flex flex-col items-center">
                 
-                <!-- Viewer Banner (Shown only in Full Screen Submission Viewer) -->
+                <!-- Viewer Banner -->
                 <div id="viewer-banner" class="hidden w-full max-w-[210mm] mb-4 bg-slate-800 text-white p-3 md:p-4 rounded-lg shadow-lg flex justify-between items-center no-print">
                     <span class="text-sm font-bold truncate pr-4"><i class="fas fa-file-import text-emerald-400 mr-2"></i> <span id="viewer-submitter" class="text-emerald-300"></span> 님의 제출본</span>
                     <div class="flex gap-2 flex-shrink-0">
@@ -396,7 +408,7 @@
                             <p class="text-xs text-gray-600 mt-1 font-sans">Republic of Korea | <span class="editable-text" data-role="customer" data-key="orgWeb" contenteditable="true" spellcheck="false">www.grouphome.or.kr</span></p>
                         </div>
                         <div class="text-right text-sm">
-                            Date: <span id="out-currentDate" class="font-semibold"></span>
+                            Date: <span class="editable-text font-semibold" data-role="admin" data-key="docDate" contenteditable="true" spellcheck="false" id="out-currentDate"></span>
                         </div>
                     </div>
 
@@ -414,16 +426,19 @@
                         <p>Dear Director and Esteemed Colleagues,</p>
                         <p>Warm greetings from South Korea. We hope this letter finds you well.</p>
 
+                        <!-- Dynamic Template Paragraph 1 -->
                         <p>
-                            We, the <strong><span class="editable-text" data-role="customer" data-key="orgName" contenteditable="true" spellcheck="false" id="out-orgName-body">Incheon Group Home Association</span></strong>, are an official organization representing professionals and facilities in South Korea.
+                            We, the <strong><span class="editable-text" data-role="customer" data-key="orgName" contenteditable="true" spellcheck="false" id="out-orgName-body">Incheon Group Home Association</span></strong>, are <span class="editable-text" data-role="admin" data-key="orgDescription" contenteditable="true" spellcheck="false">an official organization representing professionals and facilities in South Korea.</span>
                         </p>
 
+                        <!-- Dynamic Template Paragraph 2 -->
                         <p>
-                            We are currently organizing an overseas professional development program for our directors and senior staff. The main objective of this initiative is to study and benchmark advanced systems globally, particularly focusing on <strong><span class="editable-text" data-role="admin" data-key="focus" contenteditable="true" spellcheck="false">advanced child protection systems and innovative support policies for at-risk youth</span></strong>.
+                            <span class="editable-text" data-role="admin" data-key="programIntro" contenteditable="true" spellcheck="false">We are currently organizing an overseas professional development program for our directors and senior staff.</span> The main objective of this initiative is to study and benchmark advanced systems globally, particularly focusing on <strong><span class="editable-text" data-role="admin" data-key="focus" contenteditable="true" spellcheck="false">advanced child protection systems and innovative support policies for at-risk youth</span></strong>.
                         </p>
 
+                        <!-- Dynamic Template Paragraph 3 -->
                         <p>
-                            Given your organization's outstanding reputation and pioneering contributions in this field, we would be deeply honored if you could grant us the opportunity to visit your esteemed organization.
+                            <span class="editable-text" data-role="admin" data-key="visitPurpose" contenteditable="true" spellcheck="false">Given your organization's outstanding reputation and pioneering contributions in this field, we would be deeply honored if you could grant us the opportunity to visit your esteemed organization.</span>
                         </p>
 
                         <!-- Visit Details Box -->
@@ -483,10 +498,14 @@
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'tourmaker-letter-app';
 
         let appData = {
+            docDate: "",
             subjectTitle: "OFFICIAL VISIT REQUEST",
             targetDept: "The Director / International Cooperation Department",
             subjectLine: "Request for Institutional Visit and Benchmarking Program",
             agencyName: "Ministry of Social and Family Development",
+            orgDescription: "an official organization representing professionals and facilities in South Korea.",
+            programIntro: "We are currently organizing an overseas professional development program for our directors and senior staff.",
+            visitPurpose: "Given your organization's outstanding reputation and pioneering contributions in this field, we would be deeply honored if you could grant us the opportunity to visit your esteemed organization.",
             visitDateRaw: "2026-11-12",
             visitDate: "November 12 (Thursday), 2026", 
             startTime: "10:00", endTime: "11:30",
@@ -501,6 +520,31 @@
             email: "official@grouphome.or.kr", 
             phone: "+82-10-1234-5678",
             stampDataUrl: "", stampSize: 100, stampX: 0, stampY: 0
+        };
+
+        // Templates Dictionary for Auto-fill
+        const textTemplates = {
+            org: {
+                orgDescription: "an official organization representing professionals and facilities in South Korea.",
+                programIntro: "We are currently organizing an overseas professional development program for our directors and senior staff.",
+                focus: "advanced child protection systems and innovative support policies for at-risk youth",
+                visitPurpose: "Given your organization's outstanding reputation and pioneering contributions in this field, we would be deeply honored if you could grant us the opportunity to visit your esteemed organization.",
+                reqFormat: "A brief presentation on your core programs and a facility tour."
+            },
+            school: {
+                orgDescription: "a leading educational institution in South Korea dedicated to fostering global talents.",
+                programIntro: "We are currently organizing a global academic exploration program for our faculty and outstanding students.",
+                focus: "innovative educational curriculums, campus facilities, and student exchange programs",
+                visitPurpose: "As your institution is renowned for academic excellence, a visit would provide our students and faculty with invaluable global perspectives and profound inspiration.",
+                reqFormat: "A campus tour, interaction with local students, and a brief session on admissions/curriculum."
+            },
+            gov: {
+                orgDescription: "a local government body in South Korea committed to enhancing public welfare and regional development.",
+                programIntro: "We are currently organizing an overseas benchmarking training program for our public officials.",
+                focus: "advanced public administration, smart city initiatives, and sustainable urban development",
+                visitPurpose: "Given your city's exemplary achievements in public policy, we wish to learn from your best practices and discuss potential areas for future cooperation.",
+                reqFormat: "A meeting with relevant officials, presentation on policy success cases, and a site visit."
+            }
         };
 
         // For Submission Viewer Backup
@@ -533,8 +577,10 @@
                 }
             }
 
+            // Set default date if empty
             const today = new Date();
-            document.getElementById('out-currentDate').innerText = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            const formattedToday = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            if (!appData.docDate) appData.docDate = formattedToday;
 
             document.getElementById('letterPreview').addEventListener('input', handleDirectEdit);
             document.getElementById('letterPreview').addEventListener('keydown', handleEnterKey);
@@ -554,7 +600,6 @@
             await initFirebase();
         });
 
-        // 캔버스 환경 호환성을 위해 window 객체에 명시적 할당
         window.checkAdminAuth = function() {
             const pwdInput = document.getElementById('admin-pwd-input');
             if (!pwdInput) return;
@@ -682,6 +727,33 @@
             }
         }
 
+        // --- Template Manager ---
+        window.changeTemplate = function() {
+            if(!confirm("템플릿을 변경하시면 우측 본문 내용(소개, 목적 등)이 해당 성격에 맞게 자동 교체됩니다. 계속하시겠습니까?")) {
+                // UI 원복을 위해 값 동기화 필요 시 추가 가능
+                return;
+            }
+            const val = document.getElementById('admin-template-select').value;
+            const tpl = textTemplates[val];
+            if(tpl) {
+                appData.orgDescription = tpl.orgDescription;
+                appData.programIntro = tpl.programIntro;
+                appData.focus = tpl.focus;
+                appData.visitPurpose = tpl.visitPurpose;
+                appData.reqFormat = tpl.reqFormat;
+                
+                syncDOMWithState();
+                try { localStorage.setItem(`tm_letter_data_${currentEventId}`, JSON.stringify(appData)); } catch(e){}
+                showToast("선택하신 기관 성격에 맞게 영문 템플릿이 반영되었습니다.");
+            }
+        }
+
+        window.updateDocDate = function() {
+            appData.docDate = document.getElementById('admin-docDate').value;
+            syncDOMWithState();
+            try { localStorage.setItem(`tm_letter_data_${currentEventId}`, JSON.stringify(appData)); } catch(e){}
+        }
+
         // --- Inbox Logic ---
         function listenToSubmissions() {
             if(!db || isCustomerMode) return;
@@ -743,25 +815,21 @@
             const sub = submissionsList.find(s => s.id === subId);
             if(!sub) return;
             
-            // Backup current template safely
             cachedTemplateData = JSON.parse(JSON.stringify(appData));
             
             appData = { ...sub.letterData };
             isViewingSubmission = true;
             
-            // UI Switch to Full Screen Viewer
             document.getElementById('bodyEl').classList.add('show-submission-viewer');
             document.getElementById('inbox-placeholder').classList.add('hidden');
             document.getElementById('letter-wrapper').classList.remove('hidden');
             document.getElementById('viewer-banner').classList.remove('hidden');
-            
-            // 네비게이션바의 프린트 버튼도 활성화
             document.getElementById('global-print-btn').classList.remove('hidden');
             
             document.getElementById('viewer-submitter').innerText = sub.submitterName;
             
             syncDOMWithState();
-            applyRoleBasedEditability('viewer'); // Lock everything
+            applyRoleBasedEditability('viewer'); 
             showToast(`[${sub.submitterName}] 제출본을 열람 중입니다.`);
         }
 
@@ -770,12 +838,11 @@
             document.getElementById('bodyEl').classList.remove('show-submission-viewer');
             document.getElementById('viewer-banner').classList.add('hidden');
             
-            // Restore Template
             if(cachedTemplateData) {
                 appData = JSON.parse(JSON.stringify(cachedTemplateData));
             }
             
-            window.switchTab('viewInbox'); // Go back to inbox state (shows placeholder)
+            window.switchTab('viewInbox');
             syncDOMWithState();
             showToast("수신함 목록으로 돌아왔습니다.");
         }
@@ -849,10 +916,9 @@
         }
 
         window.switchTab = function(targetId) {
-            // Cancel viewer mode if leaving tab
             if(targetId !== 'viewer' && isViewingSubmission) {
                 window.closeSubmissionViewer();
-                return; // close triggers switchTab again
+                return; 
             }
 
             const body = document.getElementById('bodyEl');
@@ -868,11 +934,10 @@
             const targetSec = document.getElementById(targetId);
             if(targetSec) targetSec.classList.add('active');
 
-            // Handle Inbox Right Panel Logic
             if(targetId === 'viewInbox') {
                 document.getElementById('inbox-placeholder').classList.remove('hidden');
                 document.getElementById('letter-wrapper').classList.add('hidden');
-                document.getElementById('global-print-btn').classList.add('hidden'); // Hide global print in inbox list
+                document.getElementById('global-print-btn').classList.add('hidden');
             } else {
                 document.getElementById('inbox-placeholder').classList.add('hidden');
                 document.getElementById('letter-wrapper').classList.remove('hidden');
@@ -901,7 +966,11 @@
                 document.getElementById('ad-endTime').value = appData.endTime || '';
             }
 
-            const keys = ['subjectTitle', 'targetDept', 'subjectLine', 'agencyName', 'visitDate', 'visitTime', 'delegationSize', 'reqFormat', 'focus', 'orgName', 'orgWeb', 'repName', 'repTitle', 'email', 'phone'];
+            if(document.getElementById('admin-docDate')){
+                document.getElementById('admin-docDate').value = appData.docDate || '';
+            }
+
+            const keys = ['docDate', 'subjectTitle', 'targetDept', 'subjectLine', 'agencyName', 'orgDescription', 'programIntro', 'visitPurpose', 'visitDate', 'visitTime', 'delegationSize', 'reqFormat', 'focus', 'orgName', 'orgWeb', 'repName', 'repTitle', 'email', 'phone'];
             keys.forEach(k => {
                 document.querySelectorAll(`.editable-text[data-key="${k}"]`).forEach(el => {
                     el.innerText = appData[k] || '';
@@ -933,6 +1002,11 @@
                     document.querySelectorAll(`.editable-text[data-key="${key}"]`).forEach(el => {
                         if (el !== e.target && el.innerText !== val) el.innerText = val;
                     });
+                    
+                    // 작성일을 공문 뷰어에서 직접 수정한 경우 좌측 인풋 창과도 동기화
+                    if(key === 'docDate' && document.getElementById('admin-docDate')){
+                        document.getElementById('admin-docDate').value = val;
+                    }
                 }
                 if(!isViewingSubmission) {
                     try { localStorage.setItem(`tm_letter_data_${currentEventId}`, JSON.stringify(appData)); } catch(e){}
@@ -941,8 +1015,10 @@
         }
 
         function handleEnterKey(e) {
+            // 본문 문단(orgDescription, programIntro, visitPurpose, focus)은 엔터를 허용하고, 그 외 짧은 정보는 포커스 해제
+            const multilineKeys = ['orgDescription', 'programIntro', 'visitPurpose', 'focus'];
             if (e.target.classList.contains('editable-text') && e.key === 'Enter') {
-                if(e.target.dataset.key !== 'focus') { 
+                if(!multilineKeys.includes(e.target.dataset.key)) { 
                     e.preventDefault(); e.target.blur(); 
                 }
             }
